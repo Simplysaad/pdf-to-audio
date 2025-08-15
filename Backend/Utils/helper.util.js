@@ -5,11 +5,26 @@ export function removeSpaces(text) {
   return textArray.map((s) => s.replace(/\s+/g, " ").trim()).filter(Boolean);
 }
 
+export function removeContent(output) {
+  const contentsArray = removeSpaces(
+    output
+      .replaceAll("\n", " ")
+      .match(/(contents)\s+(.*?)\s+index/gi)[0]
+      .split(" ")
+  );
+
+  let outputArray = removeSpaces(output.replaceAll("\n", " ").split(" "));
+
+  contentsArray.forEach((match) => {
+    const index = outputArray.findIndex((s) => s === match);
+    outputArray.splice(index, 1);
+  });
+}
 export function extractContent(output) {
   return removeSpaces(
     output
       .replaceAll("\n", " ")
-      .match(/(contents)\s+(.*?)\s+index/gi)[0]
+      .match(/(?:(?!contents\s+.*?\s+index))/gi)[0]
       .split(" ")
   );
 }
@@ -39,6 +54,8 @@ export function splitChapters(output) {
   // convert the text into an array
 
   const contents = extractContent(output);
+  const mainText = removeContent(output);
+
   const escaped = contents
     .filter(Boolean)
     .map((s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
@@ -46,7 +63,7 @@ export function splitChapters(output) {
 
   const pattern = new RegExp(`\\b(${escaped.join("|")}\\b)`, "gi");
 
-  const outputArray = removeSpaces(output)
+  const outputArray = removeSpaces(mainText)
     .join(" ")
     .split(pattern)
     .filter(Boolean);
@@ -66,7 +83,7 @@ export function splitChapters(output) {
         chapterIndex: index,
         title: outputArray[matchIndex],
         // its returning results from the contents array
-        // i want to remove all the items in the array from the text 
+        // i want to remove all the items in the array from the text
         // so i can find the match from the actual body
         content: outputArray[matchIndex + 2],
       });

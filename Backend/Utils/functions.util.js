@@ -7,7 +7,6 @@
  */
 
 import fs from "fs";
-import say from "say";
 
 const TEXT_FILE = "./atomic-habits.pdf.txt";
 const FILE_OUTPUT = fs.readFileSync(TEXT_FILE).toString("utf-8");
@@ -27,6 +26,7 @@ fs.writeFileSync("output.txt", JSON.stringify(FILE_OUTPUT.split(" ")), {
   flag: "w",
 });
 function removeSpaces(text) {
+  // console.log(text.split());
   if (!Array.isArray(text)) text = text.split("\n");
   return text.map((s) => s.replace(/\s+/g, " ").trim()).filter(Boolean);
 }
@@ -53,40 +53,35 @@ function extract_main_text() {
   console.log(contentBoundary);
 
   const contents = getLines.slice(...contentBoundary);
-  let contentArray = contents.map((con) => con.replace(/^\d+/, "").trim());
-
-  const mainText = getLines.slice(contentBoundary.at(-1));
-  // .filter((line) => contents.includes(line));
-
-  let contentsIndexArr = [];
-  contentArray.forEach((con) => {
-    let idx = mainText.findIndex((x) => x === con);
-    if (idx !== -1) {
-      contentsIndexArr.push(idx);
-    }
-  });
-  console.log(contentsIndexArr);
-
-  // [
-  //   251, 253, 911, 1206, 1208, 1427, 1925, 2063, 2065, 2817, 2819, 2957, 3603,
-  //   3605, 3873, 4772, 5095, 5096, 5107, 5254, 5261, 5269, 5331,
-  // ];
-
-  let mainTextArray = [];
-  contentsIndexArr.forEach((contentIndex, idx) => {
-    // console.log(contentIndex, contentsIndexArr[idx + 1]);
-    mainTextArray.push({
-      index: idx,
-      title: mainText[contentIndex],
-      next: mainText[contentsIndexArr[idx + 1]],
-      main: mainText.slice(contentIndex, contentsIndexArr[idx + 1]).join(" "),
-    });
+  contents.forEach((con) => {
+    con = con.replace(/^\d+/, "");
+    console.log(con);
   });
 
-  say.export(mainTextArray[0].main);
+  console.log("contents", contents);
 
-  console.log(mainTextArray[0]);
+  const mainText = getLines
+    .slice(contentBoundary.at(-1))
+    .filter((line) => contents.includes(line));
 
+  console.log("mainText", mainText);
+  // const escaped = removeSpaces(content)//.join("\n");
+  // .filter(Boolean)
+  // .join(" ")
+  // .map((s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+
+  // .map((s) => `^${s}$`)
+  // .map((s) => `\\b${s}\\b`);
+
+  //   const pattern = new RegExp(`\\b(${escaped.join("|")}\\b)`, "gi");
+  // const pattern = new RegExp(`(${escaped.join("|")})`, "gi");
+  // console.log("pattern", pattern);
+
+  // const mainTextArray = removeSpaces(FILE_OUTPUT)
+  //   // .join(" ")
+  //   .split(pattern)
+  //   .filter(Boolean);
+  //   console.log(mainTextArray);
   // feed the contents into an array of strings
 
   // match all text that dont pass the initial regex
