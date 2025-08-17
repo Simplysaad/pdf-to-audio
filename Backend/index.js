@@ -8,12 +8,9 @@
 
 import fs from "fs";
 import say from "say";
-
-const TEXT_FILE = "./atomic-habits.pdf.txt";
-const FILE_OUTPUT = fs.readFileSync(TEXT_FILE).toString("utf-8");
-
-const NOT_CONTENT_REGEX = /^(?!.*contents\s+.*?\s+index).*$/gi;
-const CONTENT_REGEX = /contents\s+(.*?)\s+index/gi;
+import path from "path";
+import extract_text_from_PDF, { cleanText } from "./Utils/extractToTxt.js";
+import compress_playlist from "./Utils/compress.js";
 
 /**
  * @name removeSpaces
@@ -22,25 +19,25 @@ const CONTENT_REGEX = /contents\s+(.*?)\s+index/gi;
  * @returns {String}
  */
 
-fs.writeFileSync("output.txt", JSON.stringify(FILE_OUTPUT.split(" ")), {
-  encoding: "utf8",
-  flag: "w",
-});
 function removeSpaces(text) {
   if (!Array.isArray(text)) text = text.split("\n");
   return text.map((s) => s.replace(/\s+/g, " ").trim()).filter(Boolean);
 }
 
 /**
- * @name extract_main_text
- * @description separates the table of contents from the maintext
+ * @name split_chapters
+ * @description separates the main text into chapters
  * @returns {String[]} [contents, mainText]
  * @param {String} FILE_OUTPUT
  */
 
-function extract_main_text() {
+async function split_chapters() {
   // match all text that match the content table
-  const getLines = removeSpaces(FILE_OUTPUT);
+
+  const { title, author, text } = await extract_text_from_PDF(
+    "./atomic-habits.pdf"
+  );
+  const getLines = removeSpaces(text);
 
   let keywords = ["contents", "table of contents", "index"];
   const contentBoundary = [];
@@ -50,13 +47,10 @@ function extract_main_text() {
     if (index >= 0) contentBoundary.push(index);
   });
 
-  console.log(contentBoundary);
-
   const contents = getLines.slice(...contentBoundary);
   let contentArray = contents.map((con) => con.replace(/^\d+/, "").trim());
 
   const mainText = getLines.slice(contentBoundary.at(-1));
-  // .filter((line) => contents.includes(line));
 
   let contentsIndexArr = [];
   contentArray.forEach((con) => {
@@ -65,16 +59,9 @@ function extract_main_text() {
       contentsIndexArr.push(idx);
     }
   });
-  console.log(contentsIndexArr);
-
-  // [
-  //   251, 253, 911, 1206, 1208, 1427, 1925, 2063, 2065, 2817, 2819, 2957, 3603,
-  //   3605, 3873, 4772, 5095, 5096, 5107, 5254, 5261, 5269, 5331,
-  // ];
 
   let mainTextArray = [];
   contentsIndexArr.forEach((contentIndex, idx) => {
-    // console.log(contentIndex, contentsIndexArr[idx + 1]);
     mainTextArray.push({
       index: idx,
       title: mainText[contentIndex],
@@ -83,10 +70,45 @@ function extract_main_text() {
     });
   });
 
-  say.export(mainTextArray[0].main);
+  const availableVoices = [
+    "Microsoft Hazel Desktop",
+    "Microsoft David Desktop",
+    "Microsoft Zira Desktop",
+  ];
 
-  console.log(mainTextArray[0]);
+  if (!fs.existsSync(title)) {
+    console.log("just creating it...");
+    fs.mkdirSync(title);
+    console.log("exporting...");
+  }
+  let main_start = new Date();
 
+  for (let i = 0; i < mainTextArray.length; i++) {
+    let start = new Date();
+    say.export(
+      mainTextArray[i].main,
+      "Microsoft David Desktop",
+      null,
+      `./${title}/${i + 1}-${mainTextArray[i].title}.wav`,
+      (err) => {
+        if (err) return console.error(err);
+        let end = new Date();
+        console.log(
+          `export to ${i + 1}-${mainTextArray[i].title}.wav took ${
+            (end - start) / 1000
+          }s`
+        );
+
+        if (i === mainTextArray.length - 1)
+          compress_playlist(path.join(`./${title}`));
+      }
+    );
+  }
+
+  let main_end = new Date();
+  console.log(`all exports took ${(main_end - main_start) / 1000}s`);
+
+  // compress_playlist(path.join(`./${title}`));
   // feed the contents into an array of strings
 
   // match all text that dont pass the initial regex
@@ -94,4 +116,4 @@ function extract_main_text() {
 
   // return the content and main text as an array
 }
-extract_main_text();
+split_chapters();
