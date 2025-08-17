@@ -62,11 +62,16 @@ async function split_chapters() {
 
   let mainTextArray = [];
   contentsIndexArr.forEach((contentIndex, idx) => {
+
+    const main = mainText.slice(contentIndex, contentsIndexArr[idx + 1])
+    main[0] += " , "
+
+
     mainTextArray.push({
       index: idx,
       title: mainText[contentIndex],
       next: mainText[contentsIndexArr[idx + 1]],
-      main: mainText.slice(contentIndex, contentsIndexArr[idx + 1]).join(" "),
+      main: main.join(" "),
     });
   });
 
@@ -98,15 +103,14 @@ async function split_chapters() {
             (end - start) / 1000
           }s`
         );
-
-        if (i === mainTextArray.length - 1)
+        if (i == mainTextArray.length - 1){
           compress_playlist(path.join(`./${title}`));
+          let main_end = new Date();
+          console.log(`all exports took ${(main_end - main_start) / 1000}s`);
+        }
       }
     );
   }
-
-  let main_end = new Date();
-  console.log(`all exports took ${(main_end - main_start) / 1000}s`);
 
   // compress_playlist(path.join(`./${title}`));
   // feed the contents into an array of strings
