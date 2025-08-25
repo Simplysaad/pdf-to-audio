@@ -1,9 +1,12 @@
-import React from 'react'
+import UploadForm from "./Components/UploadForm";
 
 const App = () => {
   return (
-    <div>App</div>
-  )
-}
+    <div className="container min-w-screen min-h-screen flex flex-col justify-center items-center">
+      {/* hello world */}
+      <UploadForm />
+    </div>
+  );
+};
 
-export default App
+export default App;

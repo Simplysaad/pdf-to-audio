@@ -1,8 +1,11 @@
 import express from "express";
 // import connectDB from "./Config/db.js";
-import "dotenv/config"
+import "dotenv/config";
+import cors from "cors"
+import mainRoutes from "./Routes/main.route.js";
 
 const app = express();
+app.use(cors({}))
 
 app.listen(process.env.PORT, (err) => {
   if (err) return console.error("error connecting to server", err);
@@ -20,3 +23,5 @@ app.get("/", async (req, res, next) => {
     console.error(err);
   }
 });
+
+app.use("/upload", mainRoutes);
