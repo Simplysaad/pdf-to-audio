@@ -14,6 +14,7 @@ export function cleanText(text) {
   const regex = /[\/\\.,\s+]/g;
   return text.split(regex).filter(Boolean).join("-");
 }
+
 export default async function extract_text_from_PDF(PDF_FILE) {
 
   

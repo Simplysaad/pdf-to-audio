@@ -76,47 +76,107 @@ function removeSpaces(text) {
  * @param {String} FILE_OUTPUT
  */
 
-export async function splitChapters(path) {
+export async function splitChapters(path, chaptersOnly = true) {
   const { title, author, text } = await extract_text_from_PDF(path);
-  const getLines = removeSpaces(text);
+  const lines = removeSpaces(text); // Assuming this cleans text and returns array of lines
 
-  let keywords = ["contents", "table of contents", "index"];
-  const contentBoundary = [];
+  const startKeywords = [
+    "table of contents",
+    "contents",
+    "chapters",
+    "chapter list",
+    "contents page",
+    "summary",
+    "overview",
+    "outline",
+  ];
 
-  keywords.forEach((k) => {
-    let index = getLines.findIndex((e) => e.toLowerCase() === k);
-    if (index >= 0) contentBoundary.push(index);
-  });
+  const endKeywords = [
+    "index",
+    "bibliography",
+    "references",
+    "list of figures",
+    "list of tables",
+    "end of contents",
+    "colophon",
+    "acknowledgements",
+    "back matter",
+    "index terms",
+  ];
 
-  const contents = getLines.slice(...contentBoundary);
-  // return contents;
-
-  let contentArray = contents.map((con) => con.replace(/^\d+/, "").trim());
-
-  const mainText = getLines.slice(contentBoundary.at(-1));
-
-  let contentsIndexArr = [];
-  contentArray.forEach((con) => {
-    let idx = mainText.findIndex((x) => x === con);
-    if (idx !== -1) {
-      contentsIndexArr.push(idx);
+  // Helper function to find index based on keywords
+  function findKeywordIndex(arr, keywords, fromStart = true) {
+    const lowerArr = arr.map((line) => line.toLowerCase());
+    if (fromStart) {
+      for (let i = 0; i < lowerArr.length; i++) {
+        for (const keyword of keywords) {
+          if (lowerArr[i].includes(keyword)) {
+            return i;
+          }
+        }
+      }
+    } else {
+      for (let i = lowerArr.length - 1; i >= 0; i--) {
+        for (const keyword of keywords) {
+          if (lowerArr[i].includes(keyword)) {
+            return i;
+          }
+        }
+      }
     }
-  });
+    return -1;
+  }
 
-  let mainTextArray = [];
-  contentsIndexArr.forEach((contentIndex, idx) => {
-    const main = mainText.slice(contentIndex, contentsIndexArr[idx + 1]);
-    main[0] += " , ";
+  const startIndex = findKeywordIndex(lines, startKeywords, true);
+  if (startIndex === -1) {
+    console.error("Start keyword not found");
+    return null;
+  }
+
+  const endIndex = findKeywordIndex(lines, endKeywords, true);
+  if (endIndex === -1 || endIndex <= startIndex) {
+    console.error("End keyword not found or invalid");
+    return null;
+  }
+
+  // Extract the contents lines located between startIndex and endIndex
+  const contents = lines.slice(startIndex, endIndex);
+
+  // Remove leading numbers and whitespace from contents
+  const cleanedContents = contents.map((line) =>
+    line.replace(/^\d+/, "").trim()
+  );
+
+  // Extract main text lines after endIndex
+  const mainText = lines.slice(endIndex);
+
+  // Find indices of each contents line in mainText
+  const contentsIndexArr = cleanedContents.map((content) =>
+    mainText.findIndex((line) => line === content)
+  );
+
+  const mainTextArray = [];
+  const chapters = [];
+  for (let i = 0; i < contentsIndexArr.length; i++) {
+    const currIndex = contentsIndexArr[i];
+    let nextIndex = contentsIndexArr[i + 1] || mainText.length;
+    if (currIndex === -1) continue; // skip if content title not found
+
+    const [title, ...chapterLines] = mainText.slice(currIndex, nextIndex);
+    chapterLines[0] += " , ";
 
     mainTextArray.push({
-      index: idx,
-      title: mainText[contentIndex],
-      next: mainText[contentsIndexArr[idx + 1]],
-      main: main.join(" "),
+      index: i,
+      title: mainText[currIndex],
+      next: mainText[nextIndex] || null,
+      main: chapterLines.join(" "),
     });
-  });
 
-  return mainTextArray;
+    chapters.push(mainText[currIndex]);
+  }
+
+  if (chaptersOnly) return chapters;
+  else return mainTextArray;
 }
 
 /**

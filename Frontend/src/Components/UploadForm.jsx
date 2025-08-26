@@ -1,24 +1,49 @@
-import React from "react";
-import { useState } from "react";
+import React, { useEffect, useState } from "react";
 import axios from "axios";
 
 const UploadForm = () => {
-  const [name, setName] = useState("");
+  // const [error, setError] = useState("");
   const [uploadFile, setUploadFile] = useState("");
+  const [chapters, setChapters] = useState(["ch1", "ch2"]);
+  const [isLoading, setIsLoading] = useState(false);
 
   let axiosInstance = axios.create({
     baseURL: "http://localhost:5000",
   });
 
+  console.log("chapters.toLocaleString()");
+
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        setIsLoading(true);
+        const formdata = new FormData();
+        formdata.append("uploadFile", uploadFile);
+
+        let response = await axiosInstance.post("/upload/", formdata);
+        const { success, message, data } = response;
+
+        setChapters(data.chapters);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchData()
+  }, [uploadFile]);
+
   async function handleSubmit(e) {
     e.preventDefault();
-    const formdata = new FormData();
-    formdata.append("uploadFile", uploadFile);
+    setUploadFile(uploadFile)
+    // const formdata = new FormData();
+    // formdata.append("uploadFile", uploadFile);
 
-    let response = await axiosInstance.post("/upload/", formdata);
-    const data = await response.json();
+    // const { success, message, data } = response;
+    // let response = await axiosInstance.post("/upload/", formdata);
 
-    setName(JSON.stringify(data));
+    // setChapters(data.chapters);
   }
 
   return (
@@ -26,6 +51,15 @@ const UploadForm = () => {
       onSubmit={(e) => handleSubmit(e)}
       className="flex flex-col min-w-72 gap-4"
     >
+      {isLoading && <p>loading...</p>}
+
+      <ul>
+        {chapters?.map((chapter) => {
+          <li>{chapter}</li>;
+        })}
+      </ul>
+
+
       <label
         htmlFor="uploadFile"
         className="border text-center  rounded justify-center flex flex-col py-14 px-10 border-green-500"
