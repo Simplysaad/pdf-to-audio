@@ -12,7 +12,6 @@ const userSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-
   },
   referredBy: {
     type: mongoose.Schema.Types.ObjectId,

@@ -53,7 +53,7 @@ export async function extract_text_from_PDF(PDF_FILE) {
   return {
     title: filename, //cleanText(output.info.Title?.split(".").slice(0, -1).join(".")),
     author: output.info["Author" | "Creator"],
-    text: output.text,
+    text: output.text
   };
 }
 
@@ -88,7 +88,7 @@ export async function splitChapters(path, chaptersOnly = true) {
     "contents page",
     "summary",
     "overview",
-    "outline",
+    "outline"
   ];
 
   const endKeywords = [
@@ -101,7 +101,7 @@ export async function splitChapters(path, chaptersOnly = true) {
     "colophon",
     "acknowledgements",
     "back matter",
-    "index terms",
+    "index terms"
   ];
 
   // Helper function to find index based on keywords
@@ -169,14 +169,14 @@ export async function splitChapters(path, chaptersOnly = true) {
       index: i,
       title: mainText[currIndex],
       next: mainText[nextIndex] || null,
-      main: chapterLines.join(" "),
+      main: chapterLines.join(" ")
     });
 
     chapters.push(mainText[currIndex]);
   }
 
   if (chaptersOnly) return chapters;
-  else return mainTextArray;
+  else return [title, mainTextArray];
 }
 
 /**
@@ -195,16 +195,16 @@ export async function createAudio(mainTextArray, voice = "hazel") {
   const voices = [
     {
       name: "hazel",
-      value: "Microsoft Hazel Desktop",
+      value: "Microsoft Hazel Desktop"
     },
     {
       name: "david",
-      value: "Microsoft David Desktop",
+      value: "Microsoft David Desktop"
     },
     {
       name: "zira",
-      value: "Microsoft Zira Desktop",
-    },
+      value: "Microsoft Zira Desktop"
+    }
   ];
 
   voice = voices.find((v) => v === voice).value;
@@ -245,14 +245,14 @@ export async function createAudio(mainTextArray, voice = "hazel") {
 /**
  * @name uploadAudio
  * @description uploads files to cloudinary storage concurrently
- * @param {Array<{path: string}>} paths - Array of file objects with path property
+ * @param {Array<{path: string}>} files - Array of file objects with path property
  * @param {Object} preset
  * @returns {Promise<Array>}
  */
 export async function uploadAudio(files, preset) {
   try {
     const uploadPromises = files.map((file) => {
-      cloudinary.uploader.upload(file, preset, (error, result) => {
+      cloudinary.uploader.upload(file.path, preset, (error, result) => {
         console.log(result, error);
       });
     });

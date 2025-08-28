@@ -27,6 +27,7 @@
     "multer": "^2.0.2",
     "multer-s3": "^3.0.1",
     "multer-storage-cloudinary": "^4.0.0",
+    "node-telegram-bot-api": "^0.63.0",
     "pdf-parse": "^1.1.1",
     "say": "^0.16.0"
   },
@@ -37,5 +38,8 @@
   "bugs": {
     "url": "https://github.com/simplysaad/library/issues"
   },
-  "homepage": "https://github.com/simplysaad/library#readme"
+  "homepage": "https://github.com/simplysaad/library#readme",
+  "devDependencies": {
+    "@types/node-telegram-bot-api": "^0.64.10"
+  }
 }
