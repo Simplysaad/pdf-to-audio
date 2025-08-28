@@ -15,6 +15,7 @@
 import TelegramBot from "node-telegram-bot-api";
 import fs from "fs";
 import { createAudio, splitChapters, uploadAudio } from "./Utils";
+import Upload from "./Models/upload.model";
 
 const token = process.env.TELEGRAM_BOT_KEY;
 
