@@ -40,55 +40,55 @@ bot.onText(/\/start (.+)/, (msg) => {
   );
 });
 
-bot.on("document", async (msg) => {
-  try {
-    // Accept file upload from user
-    const fileId = msg.document.file_id;
-    const fileInfo = await bot.getFile(fileId);
-    const url = `https://api.telegram.org/file/bot${process.env.TELEGRAM_BOT_KEY}/${fileInfo.file_path}`;
+// bot.on("document", async (msg) => {
+//   try {
+//     // Accept file upload from user
+//     const fileId = msg.document.file_id;
+//     const fileInfo = await bot.getFile(fileId);
+//     const url = `https://api.telegram.org/file/bot${process.env.TELEGRAM_BOT_KEY}/${fileInfo.file_path}`;
 
-    // Upload user file to cloudinary from telegram server
-    let PdfFileUrl = await cloudinary.uploader.upload(url, (error, result) => {
-      console.log(result, error);
-    });
+//     // Upload user file to cloudinary from telegram server
+//     let PdfFileUrl = await cloudinary.uploader.upload(url, (error, result) => {
+//       console.log(result, error);
+//     });
 
-    // Download pdf file unto my server
-    const response = await fetch(PdfFileUrl);
-    const buffer = await response.buffer();
+//     // Download pdf file unto my server
+//     const response = await fetch(PdfFileUrl);
+//     const buffer = await response.buffer();
 
-    let downloadPath = "./downloaded-file.pdf";
+//     let downloadPath = "./downloaded-file.pdf";
 
-    fs.writeFileSync(downloadPath, buffer);
-    // console.log("pdf downloaded successfully")
+//     fs.writeFileSync(downloadPath, buffer);
+//     // console.log("pdf downloaded successfully")
 
-    // Convert text to audio
-    const [title, mainTextArray] = splitChapters(downloadPath);
+//     // Convert text to audio
+//     const [title, mainTextArray] = splitChapters(downloadPath);
 
-    let createdFiles = await createAudio(mainTextArray, "david");
+//     let createdFiles = await createAudio(mainTextArray, "david");
 
-    let uploadedFiles = await uploadAudio(createdFiles);
+//     let uploadedFiles = await uploadAudio(createdFiles);
 
-    const chapters = uploadedFiles.map((chapter, index) => {
-      return {
-        name: chapter.name || `chapter-${index}`,
-        path: chapter.secure_url
-      };
-    });
+//     const chapters = uploadedFiles.map((chapter, index) => {
+//       return {
+//         name: chapter.name || `chapter-${index}`,
+//         path: chapter.secure_url
+//       };
+//     });
 
-    const newUpload = new Upload({
-      chatId,
-      title,
-      chapters
-    });
+//     const newUpload = new Upload({
+//       chatId,
+//       title,
+//       chapters
+//     });
 
-    await newUpload.save();
+//     await newUpload.save();
 
-    newUpload.chapters.forEach((chapter) => {
-      let response = fetch(chapter.path)
-        .then((data) => data.buffer())
-        .then((buffer) => bot.sendDocument(chatId), buffer);
-    });
-  } catch (err) {
-    console.error(err);
-  }
-});
+//     newUpload.chapters.forEach((chapter) => {
+//       let response = fetch(chapter.path)
+//         .then((data) => data.buffer())
+//         .then((buffer) => bot.sendDocument(chatId), buffer);
+//     });
+//   } catch (err) {
+//     console.error(err);
+//   }
+// });
