@@ -141,3 +141,10 @@ vite.config.ts.timestamp-*
 
 #vscode stuff
 .vscode/
+
+.env
+node_modules/
+credentials.json
+*.wav
+*.zip
+Uploads
