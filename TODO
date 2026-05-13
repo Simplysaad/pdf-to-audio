@@ -1,0 +1,75 @@
+
+## MVP FLOW (convert pdf to podcast)
+
+1. Receive document from telegram
+2. Download pdf from telegram
+3. Extract text from pdf
+4. Clean text
+5. Split into chunks 
+6. Summarize each chuncks using ai (cheap ai)
+7. Create a final summary
+8. Convert to podcast script
+9. Convert script to ausio TTS.
+10. Send result back to telegram.
+
+
+##  Workers Distribution
+
+1. PDF ingestion worker
+    - download file
+    - store in cloud
+    - create db record
+    - send extraction job
+
+2. PDF extraction worker
+3. Cleaning and structuring worker
+    - Removing aheaders and footers
+    - normalize text
+    - split into sections
+4. Summarization worker
+5. Final summary merge
+6. Podcast script generation
+7. text to Speech generation
+
+
+
+## DATA MODELS 
+
+```
+users
+    - id
+    - telegram_id
+    - plans
+    - credits
+
+uploads
+    - id 
+    - user_id
+    - path
+    - status
+    - summary
+    - script
+    - audio_url
+
+jobs:
+    - id
+    - pdf_id
+    - stage
+    - status
+```
+
+
+## Packages
+
+* telegraf
+* axios
+* dotenv
+* express
+* bullmq
+* ioredis
+* mongoose
+* pdf-parse (or pdfjs-dist)
+* openai
+* cors 
+* helmet
+* 
