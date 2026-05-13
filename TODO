@@ -11,7 +11,7 @@
 8. Convert to podcast script
 9. Convert script to ausio TTS.
 10. Send result back to telegram.
-
+ 
 
 ##  Workers Distribution
 
@@ -73,3 +73,24 @@ jobs:
 * cors 
 * helmet
 * 
+
+
+## File structure
+
+```
+pdf-ai-bot/
+    bot/        → Telegram bot (Telegraf)
+    api/        → backend orchestration (Express/Fastify)
+    workers/    → BullMQ background processors
+
+  packages/
+    shared/     → types, utils, chunking, logging
+    ai/         → OpenAI + Gemini abstraction layer
+    pdf/        → PDF extraction utilities
+    storage/    → S3/R2 file handling
+    db/         → MongoDB (Mongoose)
+
+  infra/
+    docker/
+
+```

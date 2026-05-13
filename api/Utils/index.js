@@ -31,31 +31,6 @@ export function cleanText(text) {
   return text.split(regex).filter(Boolean).join("-");
 }
 
-/**
- *
- * @param {String} PDF_FILE
- * @returns {{title: string, author: string, text: string}}
- * @example
- * ```
- * extract_text_from_PDF("./atomic-habits.pdf");
- * ```
- */
-
-export async function extract_text_from_PDF(PDF_FILE) {
-  const buffer = fs.readFileSync(PDF_FILE);
-  const output = await PdfParse(buffer);
-
-  // console.log(output)
-
-  const filename = path.basename(PDF_FILE);
-
-  output.text = output.text.toString("utf8");
-  return {
-    title: filename, //cleanText(output.info.Title?.split(".").slice(0, -1).join(".")),
-    author: output.info["Author" | "Creator"],
-    text: output.text
-  };
-}
 
 /**
  * @name removeSpaces

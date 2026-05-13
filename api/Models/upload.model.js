@@ -2,20 +2,28 @@ import mongoose from "mongoose";
 
 const UploadSchema = new mongoose.Schema(
   {
-    chatId: {
+    user_id: {
       type: String
     },
-    title: {
+    path: {
       type: String,
       required: true
     },
-    fileUrl: String,
+    status: String,
     chapters: [
       {
         name: String,
         path: String
       }
-    ]
+    ],
+    summary: {
+      type: String
+    },
+    script: {
+      type: String,
+    },
+    audio_url: String
+
     // ,zipFilePath: {
     //   type: String,
     //   required: true

@@ -148,3 +148,4 @@ credentials.json
 *.wav
 *.zip
 Uploads
+**/test**

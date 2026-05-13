@@ -3,19 +3,15 @@ import mongoose from "mongoose";
 const userSchema = new mongoose.Schema({
   name: {
     type: String,
-    required: true,
+    // required: true,
   },
-  emailAddress: {
+  telegram_id: {
     type: String,
     required: true,
     unique: true,
   },
-  password: {
-    type: String,
-  },
   referredBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "users"
+    type: String,
   }
 });
 
