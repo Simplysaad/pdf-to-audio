@@ -17,13 +17,19 @@ import extract_text_from_PDF from "./Utils/parsePdf.js"
 import { getChapterMap } from "./Utils/splitChapters.js"
 import { config } from "dotenv"
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { splitTextIntoChapters } from "./Utils/chunking.js";
 
 
 // console.log(process.env)
 
-let extracted_text = await extract_text_from_PDF("./test.pdf")
-console.log(extracted_text)
+let { text } = await extract_text_from_PDF("./test.pdf")
+console.log("text", text)
 
-let response = await getChapterMap(extracted_text.text)
+let chapterMap = await getChapterMap(text)
 
-console.log(response)
+console.log("chapterMap", chapterMap)
+
+// const chapters = chapterMap.chapters
+
+const chunks = splitTextIntoChapters(text, chapterMap)
+console.log("chunks", chunks)
