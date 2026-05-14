@@ -286,17 +286,16 @@ export async function generateSummary(chapter, bookTitle) {
   // console.log("chunk", chunk)
 
   const prompt = `
-  System Role: You are a technical researcher.
-  Analyze the following chapter text from the book '${bookTitle}', specifically the chapter titled '${chapterTitle}'.
-      Your goal is to extract the core 'mental models' and technical pillars.
+   System Role: You are a technical data extractor. Analyze this text from '${bookTitle}', Chapter: '${chapterTitle}'.
 
-      Please provide:
-      * Core Thesis: A 1-sentence summary of the chapter's purpose.
-      * Technical Mechanisms: 3-5 bullet points explaining how the concepts work.
-      * The 'Key Insight': One profound takeaway that a student must remember.
+    Task: Extract the core architecture into a raw JSON object with these exact keys:
+    - "thesis": A 1-sentence core purpose.
+    - "mechanisms": An array of 3-5 technical bullet points.
+    - "insight": The absolute most critical concept a student must remember.
 
-      Constraint: Avoid fluff. Maintain technical accuracy.
-      Text: ${main}
+    Constraint: Return ONLY valid JSON. No markdown wrappers, no backticks, no markdown formatting.
+
+    Text: ${main}
       `;
 
   // console.log("prompt", prompt)
@@ -307,35 +306,19 @@ export async function generateSummary(chapter, bookTitle) {
 
 export async function generatePodcastScript(summariesText) {
   const prompt = `
-  *System Role*: You are an elite technical scriptwriter . Your goal is to convert technical summaries into a high-production value podcast script using the Feynman Technique.
+System Role: You are an elite audio scriptwriter.
+    Convert the following array of sequential chapter summaries from the book '${bookTitle
+    }' into a fluid podcast script.
 
-  **Task 1**: Identify Authorities
-Based on the provided chapter summaries, identify the 2 most prominent historical or current authorities in this specific field (e.g., if the book is about Machine Learning, use 'Andrew Ng' and 'Andrej Karpathy'; if about Civil Engineering, use 'Isambard Kingdom Brunel' and 'Emily Roebling'). Use these figures as your podcast hosts.
+    Guidelines:
+    1. Identify 2 domain authorities to act as constant hosts throughout the entire show.
+    2. Maintain a continuous narrative arc. Host A uses the Feynman Technique (simple physical analogies) and Host B maps it back to technical reality.
+    3. Sequence through the chapter data array naturally without explicitly listing chapter numbers.
+    4. Output the script as an array of JSON speaker blocks utilizing "voice" (SPEAKER_1/SPEAKER_2),
+"speaker_name", and "text" keys. Include SSML pause tags (<break time="500ms"/>) inside the text strings.
 
-**Task 2**: Master Summary
-Create a 3-paragraph "Executive Overview" that synthesizes all the provided chapter insights into a single cohesive narrative.
-
-**Task 3**: SSML Podcast Script Construction
-Write a 5–10 minute dialogue script between the two identified authorities.
-
-Strict Scripting Guidelines:
-
-The Feynman Technique: Host A must explain complex "black box" concepts using simple, physical analogies . Host B must then bridge that analogy back to the high-level technical reality.
-
-SSML Formatting: Wrap the entire script in <speak> tags. Assign each host a unique voice ID using <voice name="HostName"> tags. Use <break time="500ms"/> for natural pauses and <emphasis level="moderate"> for key technical terms.
-
-**Structure**:
-
-*Opening*: Establish the "why" — why does this knowledge matter to a student's career?
-
-*The Journey*: Walk through the chapters sequentially, but make it feel like a natural conversation, not a list.
-
-*The Practical Closure*: End with a "Final Design Review" — one actionable step the listener can take today.
-
-*Tone*: Intellectual, respectful of the science, but conversational and energetic.
-
-      
-      Source Material: ${summariesText}
+    Source Material JSON Data:
+    ${JSON.stringify(detailedSummaries, null, 2)}
     `;
 
   return await callGemini({ prompt, model: "gemini-2.5-flash" });

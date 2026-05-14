@@ -6,7 +6,7 @@ const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 export async function callGemini({ prompt, returnType, model }) {
     try {
         const result = await ai.models.generateContent({
-            model: "gemini-3.1-flash-lite",
+            model: model || "gemini-3.1-flash-lite",
             contents: [{ role: "user", parts: [{ text: prompt }] }]
         });
         if (result) console.log("✅ Prompt executed successfully", result);
