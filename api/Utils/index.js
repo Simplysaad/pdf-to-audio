@@ -10,8 +10,9 @@ import fs from "fs";
 import say from "say";
 import path from "path";
 import AdmZip from "adm-zip";
-import cloudinary from "../Config/cloudinary.js";
+// import cloudinary from "../Config/cloudinary.js";
 import PdfParse from "pdf-parse";
+import { getChapterMap } from "./getChapterMap.js";
 
 /**
  * Read the file and extract buffer
@@ -31,6 +32,31 @@ export function cleanText(text) {
   return text.split(regex).filter(Boolean).join("-");
 }
 
+/**
+ *
+ * @param {String} PDF_FILE
+ * @returns {{title: string, author: string, text: string}}
+ * @example
+ * ```
+ * extract_text_from_PDF("./atomic-habits.pdf");
+ * ```
+ */
+
+export async function extract_text_from_PDF(PDF_FILE) {
+  const buffer = fs.readFileSync(PDF_FILE);
+  const output = await PdfParse(buffer);
+
+  // console.log(output)
+
+  const filename = path.basename(PDF_FILE);
+
+  output.text = output.text.toString("utf8");
+  return {
+    title: filename, //cleanText(output.info.Title?.split(".").slice(0, -1).join(".")),
+    author: output.info["Author" | "Creator"],
+    text: output.text
+  };
+}
 
 /**
  * @name removeSpaces
@@ -51,107 +77,73 @@ function removeSpaces(text) {
  * @param {String} FILE_OUTPUT
  */
 
-export async function splitChapters(path, chaptersOnly = true) {
-  const { title, author, text } = await extract_text_from_PDF(path);
-  const lines = removeSpaces(text); // Assuming this cleans text and returns array of lines
+export async function splitChapters(path) {
+  const { text } = await extract_text_from_PDF(path);
 
-  const startKeywords = [
-    "table of contents",
-    "contents",
-    "chapters",
-    "chapter list",
-    "contents page",
-    "summary",
-    "overview",
-    "outline"
-  ];
+  const lines = removeSpaces(text);
 
-  const endKeywords = [
-    "index",
-    "bibliography",
-    "references",
-    "list of figures",
-    "list of tables",
-    "end of contents",
-    "colophon",
-    "acknowledgements",
-    "back matter",
-    "index terms"
-  ];
-
-  // Helper function to find index based on keywords
-  function findKeywordIndex(arr, keywords, fromStart = true) {
-    const lowerArr = arr.map((line) => line.toLowerCase());
-    if (fromStart) {
-      for (let i = 0; i < lowerArr.length; i++) {
-        for (const keyword of keywords) {
-          if (lowerArr[i].includes(keyword)) {
-            return i;
-          }
-        }
-      }
-    } else {
-      for (let i = lowerArr.length - 1; i >= 0; i--) {
-        for (const keyword of keywords) {
-          if (lowerArr[i].includes(keyword)) {
-            return i;
-          }
-        }
-      }
-    }
-    return -1;
+  const chapterMap = await getChapterMap(text);
+  if (!chapterMap) {
+    console.log("❎ Unable to Split text into chapters");
+    return {
+      success: false,
+      message: "❎ Unable to Split text into chapters, Try Again"
+    };
   }
 
-  const startIndex = findKeywordIndex(lines, startKeywords, true);
-  if (startIndex === -1) {
-    console.error("Start keyword not found");
-    return null;
-  }
-
-  const endIndex = findKeywordIndex(lines, endKeywords, true);
-  if (endIndex === -1 || endIndex <= startIndex) {
-    console.error("End keyword not found or invalid");
-    return null;
-  }
-
-  // Extract the contents lines located between startIndex and endIndex
-  const contents = lines.slice(startIndex, endIndex);
-
-  // Remove leading numbers and whitespace from contents
-  const cleanedContents = contents.map((line) =>
-    line.replace(/^\d+/, "").trim()
-  );
-
-  // Extract main text lines after endIndex
-  const mainText = lines.slice(endIndex);
-
-  // Find indices of each contents line in mainText
-  const contentsIndexArr = cleanedContents.map((content) =>
-    mainText.findIndex((line) => line === content)
-  );
+  const chaptersList = chapterMap?.chapters || [];
 
   const mainTextArray = [];
-  const chapters = [];
-  for (let i = 0; i < contentsIndexArr.length; i++) {
-    const currIndex = contentsIndexArr[i];
-    let nextIndex = contentsIndexArr[i + 1] || mainText.length;
-    if (currIndex === -1) continue; // skip if content title not found
 
-    const [title, ...chapterLines] = mainText.slice(currIndex, nextIndex);
-    chapterLines[0] += " , ";
+  // 1. Skip the TOC
+  // We look for the first chapter's title. 
+  // We search for the *second* occurrence (usually the first is TOC, second is Body)
+  let firstOccurrence = lines.findIndex(line => line.includes(chaptersList[0]?.title));
+  let startSearchFrom = lines.findIndex((line, idx) =>
+    idx > firstOccurrence && line.includes(chaptersList[0].title)
+  );
+
+  // If we can't find a second occurrence, fall back to the first + a safe buffer
+  if (startSearchFrom === -1) startSearchFrom = firstOccurrence + 20;
+
+  let currentPointer = startSearchFrom;
+
+  for (let i = 0; i < chaptersList.length; i++) {
+    const currentTitle = chaptersList[i].title;
+    const nextChapter = chaptersList[i + 1];
+
+    // Find where THIS chapter actually starts
+    const startIndex = lines.findIndex((line, idx) =>
+      idx >= currentPointer && line.includes(currentTitle)
+    );
+
+    if (startIndex === -1) continue;
+
+    // Find where the NEXT chapter starts
+    let endIndex = lines.length;
+    if (nextChapter) {
+      const foundEnd = lines.findIndex((line, idx) =>
+        idx > startIndex + 5 && line.includes(nextChapter.title)
+      );
+      if (foundEnd !== -1) endIndex = foundEnd;
+    }
+
+    // Extract the content
+    const chapterLines = lines.slice(startIndex, endIndex);
+    const content = chapterLines.join(" ").trim();
 
     mainTextArray.push({
-      index: i,
-      title: mainText[currIndex],
-      next: mainText[nextIndex] || null,
-      main: chapterLines.join(" ")
+      id: i + 1,
+      title: currentTitle,
+      main: content
     });
 
-    chapters.push(mainText[currIndex]);
+    // Move the pointer forward so the next loop starts AFTER this chapter
+    currentPointer = endIndex;
   }
 
-  if (chaptersOnly) return chapters;
-  else return [title, mainTextArray];
+  console.log("✅ Successfully split into:", mainTextArray.length, "chapters");
+  return mainTextArray;
 }
 
 /**
@@ -160,7 +152,7 @@ export async function splitChapters(path, chaptersOnly = true) {
  * 1. feed the contents into an array of strings
  * 2. match all text that dont pass the initial regex
  * 3. feed that into a separate array
- * 4. return the content and main text as an array
+ * 4. return the chapter and main text as an array
  *
  * @param {String[]} mainTextArray
  * @param {String} voice
@@ -224,20 +216,20 @@ export async function createAudio(mainTextArray, voice = "hazel") {
  * @param {Object} preset
  * @returns {Promise<Array>}
  */
-export async function uploadAudio(files, preset) {
-  try {
-    const uploadPromises = files.map((file) => {
-      cloudinary.uploader.upload(file.path, preset, (error, result) => {
-        console.log(result, error);
-      });
-    });
+// export async function uploadAudio(files, preset) {
+//   try {
+//     const uploadPromises = files.map((file) => {
+//       cloudinary.uploader.upload(file.path, preset, (error, result) => {
+//         console.log(result, error);
+//       });
+//     });
 
-    let uploadedAudio = await Promise.all(uploadPromises);
-    return uploadedAudio;
-  } catch (err) {
-    console.error(err);
-  }
-}
+//     let uploadedAudio = await Promise.all(uploadPromises);
+//     return uploadedAudio;
+//   } catch (err) {
+//     console.error(err);
+//   }
+// }
 
 /**
  * @name compressPlaylist
