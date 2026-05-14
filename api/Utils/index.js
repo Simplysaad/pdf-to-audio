@@ -13,6 +13,7 @@ import AdmZip from "adm-zip";
 // import cloudinary from "../Config/cloudinary.js";
 import PdfParse from "pdf-parse";
 import { getChapterMap } from "./getChapterMap.js";
+import { callGemini } from "./callGemini.js";
 
 /**
  * Read the file and extract buffer
@@ -57,6 +58,23 @@ export async function extract_text_from_PDF(PDF_FILE) {
     text: output.text
   };
 }
+
+export async function getMetaData(PDF_FILE) {
+  const buffer = fs.readFileSync(PDF_FILE);
+  const output = await PdfParse(buffer);
+
+
+  const filename = path.basename(PDF_FILE);
+
+  // output.text = output.text.toString("utf8");
+  // console.log("output", output)
+  return {
+    title: output.info.Title || output.Title || filename,
+    author: output.info["Author" | "Creator"],
+    text: output.text
+  };
+}
+
 
 /**
  * @name removeSpaces
@@ -258,4 +276,67 @@ export function compressPlaylist(folder_path) {
   } catch (err) {
     console.error(err);
   }
+}
+
+
+export async function generateSummary(chapter, bookTitle) {
+  // Destructure properties from the chunk object
+  const { title: chapterTitle, main } = chapter;
+
+  // console.log("chunk", chunk)
+
+  const prompt = `
+  System Role: You are a technical researcher.
+  Analyze the following chapter text from the book '${bookTitle}', specifically the chapter titled '${chapterTitle}'.
+      Your goal is to extract the core 'mental models' and technical pillars.
+
+      Please provide:
+      * Core Thesis: A 1-sentence summary of the chapter's purpose.
+      * Technical Mechanisms: 3-5 bullet points explaining how the concepts work.
+      * The 'Key Insight': One profound takeaway that a student must remember.
+
+      Constraint: Avoid fluff. Maintain technical accuracy.
+      Text: ${main}
+      `;
+
+  // console.log("prompt", prompt)
+  // Using 1.5-flash for speed and low cost
+  return await callGemini({ prompt, model: "gemini-2.5-flash-lite" });
+}
+
+
+export async function generatePodcastScript(summariesText) {
+  const prompt = `
+  *System Role*: You are an elite technical scriptwriter . Your goal is to convert technical summaries into a high-production value podcast script using the Feynman Technique.
+
+  **Task 1**: Identify Authorities
+Based on the provided chapter summaries, identify the 2 most prominent historical or current authorities in this specific field (e.g., if the book is about Machine Learning, use 'Andrew Ng' and 'Andrej Karpathy'; if about Civil Engineering, use 'Isambard Kingdom Brunel' and 'Emily Roebling'). Use these figures as your podcast hosts.
+
+**Task 2**: Master Summary
+Create a 3-paragraph "Executive Overview" that synthesizes all the provided chapter insights into a single cohesive narrative.
+
+**Task 3**: SSML Podcast Script Construction
+Write a 5–10 minute dialogue script between the two identified authorities.
+
+Strict Scripting Guidelines:
+
+The Feynman Technique: Host A must explain complex "black box" concepts using simple, physical analogies . Host B must then bridge that analogy back to the high-level technical reality.
+
+SSML Formatting: Wrap the entire script in <speak> tags. Assign each host a unique voice ID using <voice name="HostName"> tags. Use <break time="500ms"/> for natural pauses and <emphasis level="moderate"> for key technical terms.
+
+**Structure**:
+
+*Opening*: Establish the "why" — why does this knowledge matter to a student's career?
+
+*The Journey*: Walk through the chapters sequentially, but make it feel like a natural conversation, not a list.
+
+*The Practical Closure*: End with a "Final Design Review" — one actionable step the listener can take today.
+
+*Tone*: Intellectual, respectful of the science, but conversational and energetic.
+
+      
+      Source Material: ${summariesText}
+    `;
+
+  return await callGemini({ prompt, model: "gemini-2.5-flash" });
 }

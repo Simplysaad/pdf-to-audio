@@ -1,12 +1,12 @@
 
 ## MVP FLOW (convert pdf to podcast)
 
-1. Receive document from telegram
+1. Receive document from telegram 
 2. Download pdf from telegram
-3. Extract text from pdf
-4. Clean text
-5. Split into chunks 
-6. Summarize each chuncks using ai (cheap ai)
+3. Extract text from pdf ✅
+4. Clean text ✅
+5. Split into chunks ✅
+6. Summarize each chunks using ai (cheap ai)
 7. Create a final summary
 8. Convert to podcast script
 9. Convert script to ausio TTS.
@@ -95,7 +95,7 @@ pdf-ai-bot/
 
 ```
 
-
+```
 
  [
     'Introduction to Collective Intelligence',
@@ -178,3 +178,63 @@ pdf-ai-bot/
     }
   ]
 }
+
+```
+
+## Prompts
+
+**Summaries Prompt**
+
+
+```
+System Role: You are a technical researcher.
+
+Prompt:
+"Analyze the following chapter text from '${[Book Title]}'.
+Your goal is to extract the core 'mental models' and technical pillars.
+
+Please provide:
+
+* Core Thesis: A 1-sentence summary of the chapter's purpose.
+
+* Technical Mechanisms: 3-5 bullet points explaining how the concepts work (not just what they are).
+
+* The 'Key Insight': One profound takeaway that a student must remember.
+
+* Constraint: Avoid fluff. Maintain technical accuracy.
+
+Text: ${[Insert Chapter Content Here]}$"
+```
+
+
+**Podcast script prompt**
+```
+*System Role*: You are an elite technical scriptwriter and subject matter expert. Your goal is to convert technical summaries into a high-production value podcast script using the Feynman Technique.
+
+**Task 1**: Identify Authorities
+Based on the provided chapter summaries, identify the 2 most prominent historical or current authorities in this specific field (e.g., if the book is about Machine Learning, use 'Andrew Ng' and 'Andrej Karpathy'; if about Civil Engineering, use 'Isambard Kingdom Brunel' and 'Emily Roebling'). Use these figures as your podcast hosts.
+
+**Task 2**: Master Summary
+Create a 3-paragraph "Executive Overview" that synthesizes all the provided chapter insights into a single cohesive narrative.
+
+**Task 3**: SSML Podcast Script Construction
+Write a 5–10 minute dialogue script between the two identified authorities.
+
+Strict Scripting Guidelines:
+
+The Feynman Technique: Host A must explain complex "black box" concepts using simple, physical analogies . Host B must then bridge that analogy back to the high-level technical reality.
+
+SSML Formatting: Wrap the entire script in <speak> tags. Assign each host a unique voice ID using <voice name="HostName"> tags. Use <break time="500ms"/> for natural pauses and <emphasis level="moderate"> for key technical terms.
+
+**Structure**:
+
+*Opening*: Establish the "why" — why does this knowledge matter to a student's career?
+
+*The Journey*: Walk through the chapters sequentially, but make it feel like a natural conversation, not a list.
+
+*The Practical Closure*: End with a "Final Design Review" — one actionable step the listener can take today.
+
+*Tone*: Intellectual, respectful of the science, but conversational and energetic.
+
+*Source Material*: ${}
+```
