@@ -1,223 +1,111 @@
+### Telegram Bot System Userflow
 
-## MVP FLOW (convert pdf to podcast)
+This architectural userflow outlines the state management and decision trees required to handle multi-service workflows (PDF-to-Podcast, Study Guides, Research Summaries) within a Telegram bot interface.
 
-1. Receive document from telegram 
-2. Download pdf from telegram
-3. Extract text from pdf ✅
-4. Clean text ✅
-5. Split into chunks ✅
-6. Summarize each chunks using ai (cheap ai)
-7. Create a final summary
-8. Convert to podcast script
-9. Convert script to ausio TTS.
-10. Send result back to telegram.
- 
-
-##  Workers Distribution
-
-1. PDF ingestion worker
-    - download file
-    - store in cloud
-    - create db record
-    - send extraction job
-
-2. PDF extraction worker
-3. Cleaning and structuring worker
-    - Removing aheaders and footers
-    - normalize text
-    - split into sections
-4. Summarization worker
-5. Final summary merge
-6. Podcast script generation
-7. text to Speech generation
-
-
-
-## DATA MODELS 
+The system relies on a **session-state machine** to track the user's progress and handle incoming files or text inputs contextually.
 
 ```
-users
-    - id
-    - telegram_id
-    - plans
-    - credits
-
-uploads
-    - id 
-    - user_id
-    - path
-    - status
-    - summary
-    - script
-    - audio_url
-
-jobs:
-    - id
-    - pdf_id
-    - stage
-    - status
-```
-
-
-## Packages
-
-* telegraf
-* axios
-* dotenv
-* express
-* bullmq
-* ioredis
-* mongoose
-* pdf-parse (or pdfjs-dist)
-* openai
-* cors 
-* helmet
-* 
-
-
-## File structure
-
-```
-pdf-ai-bot/
-    bot/        → Telegram bot (Telegraf)
-    api/        → backend orchestration (Express/Fastify)
-    workers/    → BullMQ background processors
-
-  packages/
-    shared/     → types, utils, chunking, logging
-    ai/         → OpenAI + Gemini abstraction layer
-    pdf/        → PDF extraction utilities
-    storage/    → S3/R2 file handling
-    db/         → MongoDB (Mongoose)
-
-  infra/
-    docker/
+[User /start] ──> [Main Menu: Service Selection]
+                         │
+        ┌────────────────┼────────────────┐
+        ▼                ▼                ▼
+[PDF-to-Podcast]  [Study Guides]   [Research Digest]
+        │                │                │
+        ▼                ▼                ▼
+ [Upload File]     [Select Topic]   [Paste URL/Text]
+        │                │                │
+        └────────────────┼────────────────┘
+                         ▼
+             [Pipeline Processing Queue]
+                         │
+                         ▼
+             [Delivery & Artifacts]
 
 ```
 
-```
+---
 
- [
-    'Introduction to Collective Intelligence',
-    'Making Recommendations',
-    'Discovering Groups',
-    'Searching and Ranking',
-    'Optimization',
-    'Document Filtering',
-    'Modeling with Decision Trees',
-    'Building Price Models',
-    'Advanced Classification: Kernel Methods and SVMs',
-    'Finding Independent Features',
-    'Evolving Intelligence',
-    'Algorithm Summary'
-  ]
+### Step-by-Step State Flow
+
+#### Step 1: Session Initialization (`/start`)
+
+* **User Action:** User enters or clicks `/start`.
+* **System Action:**
+* Initialize user session in the database (`userId`, `current_state: "IDLE"`, `active_service: null`).
+* Send a welcome message along with an **Inline Keyboard** presenting the available services.
 
 
-  {
-  bookTitle: 'Programming Collective Intelligence',
-  chapters: [
-    {
-      id: 1,
-      title: 'Introduction to Collective Intelligence',
-      start_phrase: 'The increasing number of people contributing to the Internet, either deliberately or incidentally, has created a huge set of data that gives us millions of potential insights into'
-    },
-    {
-      id: 2,
-      title: 'Making Recommendations',
-      start_phrase: 'Introduces thecollaborative filteringtechniques used by many online retailers to recommend products or media. The chapter includes a section on recommending links to'
-    },
-    {
-      id: 3,
-      title: 'Discovering Groups',
-      start_phrase: 'Builds on some of the ideas in Chapter 2 and introduces two different methods ofclustering, which automatically detect groups of similar items in a large dataset. This chapter'
-    },
-    {
-      id: 4,
-      title: 'Searching and Ranking',
-      start_phrase: 'Describes the various parts of a search engine including the crawler, indexer, and query engine. It covers thePageRankalgorithm for scoring pages based on inbound links and shows'
-    },
-    {
-      id: 5,
-      title: 'Optimization',
-      start_phrase: 'Introduces algorithms foroptimization, which are designed to search millions of possible solutions to a problem and choose the best one. The wide variety of uses for these algorithms'
-    },
-    {
-      id: 6,
-      title: 'Document Filtering',
-      start_phrase: 'Filtering Spam Documents and Words Training the Classifier Calculating Probabilities A Naïve Classifier The Fisher Method Persisting the Trained Classifiers Filtering Blog'
-    },
-    {
-      id: 7,
-      title: 'Modeling with Decision Trees',
-      start_phrase: 'Predicting Signups Introducing Decision Trees Training the Tree Choosing the Best Split Recursive Tree Building Displaying the Tree Classifying New Observations Pruning the'
-    },
-    {
-      id: 8,
-      title: 'Building Price Models',
-      start_phrase: 'Building a Sample Dataset k-Nearest Neighbors Weighted Neighbors Cross-Validation Heterogeneous Variables Optimizing the Scale Uneven Distributions Using Real Data—the eBay'
-    },
-    {
-      id: 9,
-      title: 'Advanced Classification: Kernel Methods and SVMs',
-      start_phrase: 'Matchmaker Dataset Difficulties with the Data Basic Linear Classification Categorical Features Scaling the Data Understanding Kernel Methods Support-Vector Machines Using LIBSVM'
-    },
-    {
-      id: 10,
-      title: 'Finding Independent Features',
-      start_phrase: 'A Corpus of News Previous Approaches Non-Negative Matrix Factorization Displaying the Results Using Stock Market Data Exercises'
-    },
-    {
-      id: 11,
-      title: 'Evolving Intelligence',
-      start_phrase: 'What Is Genetic Programming? Programs As Trees Creating the Initial Population Testing a Solution Mutating Programs Crossover Building the Environment A Simple Game Further'
-    },
-    {
-      id: 12,
-      title: 'Algorithm Summary',
-      start_phrase: 'Bayesian Classifier Decision Tree Classifier Neural Networks Support-Vector Machines k-Nearest Neighbors Clustering Multidimensional Scaling Non-Negative Matrix Factorization Optimization'
-    }
-  ]
-}
-
-```
-
-## Prompts
-
-**Summaries Prompt**
+* **UI Options:**
+* 🎙️ `PDF to Podcast`
+* 📝 `Exam Study Guide Generator`
+* 🔍 `Deep Research Digest`
 
 
-```
-System Role: You are an elite technical researcher specializing in information density and structural synthesis.
 
-Task: Analyze the provided chapter text from the book '${[Book Title]}' and extract its core architectural pillars.
+#### Step 2: Service Selection & State Transition
 
-Required Output Schema:
-* Core Thesis: A single, high-impact sentence defining the primary purpose or paradigm shift introduced in this chapter.
-* Technical Mechanisms: 3 to 5 precise bullet points detailing the exact execution steps, workflows, or algorithmic logic of how these concepts function. Do not define terms; map out their operations.
-* The Key Insight: The single most profound, non-obvious takeaway or mental model that a student must retain for long-term mastery.
-
-Execution Constraints:
-- Zero filler, fluff, introductory preambles, or conversational transitions.
-- Maintain absolute technical rigor and exact terminology from the text.
-- If data or metrics are present, prioritize their inclusion in the mechanisms.
-
-Text to Analyze:
-${[Insert Chapter Content Here]}
-
-```
+* **User Action:** User taps one of the inline menu buttons (e.g., 🎙️ `PDF to Podcast`).
+* **System Action:**
+* Update session state: `current_state: "AWAITING_INPUT"`, `active_service: "PODCAST"`.
+* Dynamically clear previous keyboard markup and send specific instructions based on the chosen path.
+* *Example Instruction:* "Please upload your technical PDF (Max 20MB). Ensure it has a legible Table of Contents."
 
 
-**Podcast script prompt**
-```
-Role: You are an elite technical scriptwriter and domain expert. Convert the book summaries for '${bookTitle}' into a high-production podcast script.
 
-Guidelines:
-1. Hosts: Identify the 2 most prominent authorities in this specific field to act as hosts.
-2. Style: Host A explains complex concepts using simple physical analogies (Feynman Technique). Host B bridges the analogy back to high-level technical reality.
-3. Flow: Walk through the source data sequentially. Establish why this knowledge matters to a career, and end with an actionable "Final Design Review" task.
-4. Tone: Intellectual, respectful of science, conversational, and energetic.
-5. Format: Output exclusively as a valid JSON array of speaker blocks using keys: "voice" (SPEAKER_1/SPEAKER_2), "speaker_name", and "text". Wrap text values in SSML tags (<break time="500ms"/>, <emphasis>).
+#### Step 3: Input Validation & Ingestion
 
-Source Material: ${JSON.stringify(detailedSummaries,null,2)}
+* **User Action:** User uploads a `.pdf` file (or inputs text/URLs depending on the selected service).
+* **System Action:**
+* Interceptors check the file type and size. If invalid, reject immediately and remain in `AWAITING_INPUT`.
+* If valid, download the file to local/cloud storage.
+* Update session state: `current_state: "PROCESSING"`, `file_path: "storage/path/to/file.pdf"`.
+* Send an animated loading status message: "Parsing document structure... 🛠️"
 
-```
+
+
+#### Step 4: Core Pipeline Execution (Async Worker)
+
+* **User Action:** Waiting (System acts in background).
+* **System Action:**
+* Trigger the Node.js backend processing pipeline.
+* **If PODCAST:** Execute text extraction ──> TOC bypass mapping ──> Sequential chapter chunking ──> Gemini synthesis ──> TTS Audio compilation.
+* **If STUDY GUIDE:** Execute text extraction ──> Multi-choice question (MCQ) generation + flashcard compilation.
+* **If RESEARCH DIGEST:** Execute extraction ──> Cross-reference checking ──> Academic abstract synthesis.
+* *UX Optimization:* Periodically edit the live Telegram message to show real-time progress percentages (e.g., "Summarizing Chapter 4/12...").
+
+
+
+#### Step 5: Deliverables & Download Generation
+
+* **User Action:** Receives notification of completion.
+* **System Action:**
+* Update session state: `current_state: "COMPLETED"`.
+* Construct the native Telegram audio document block or file buffer.
+* Send the artifact directly into the chat session as a native streaming file, accompanied by an action-driven inline keyboard.
+
+
+
+#### Step 6: Post-Delivery & Loop Closure
+
+* **User Action:** Listens to or downloads the audio file directly inside Telegram, then interacts with the new menu.
+* **UI Options (Inline Keyboard):**
+* 🔄 `Process Another File`
+* 🏠 `Back to Main Menu`
+* 🧠 `Generate Study Guide for this book` (Cross-service routing)
+
+
+* **System Action:** If the user selects `Back to Main Menu`, wipe the file cache references for security/storage management, clear the active service flags, and reset the state machine back to `current_state: "IDLE"`.
+
+---
+
+### Technical State Matrix for Development
+
+To implement this with a library like `Telegraf`, your state schema should map out like this to prevent users from crashing the script by sending inputs at the wrong time:
+
+| Current State | Expected Event Type | Target Transition State | Triggered Backend Worker |
+| --- | --- | --- | --- |
+| `IDLE` | `callback_query: "service_select"` | `AWAITING_INPUT` | `MenuRouter()` |
+| `AWAITING_INPUT` | `message: "document"` (if Podcast) | `PROCESSING` | `FileIngestionEngine()` |
+| `AWAITING_INPUT` | `message: "text"` (if Research) | `PROCESSING` | `URLScraperEngine()` |
+| `PROCESSING` | *Any incoming message/button* | `PROCESSING` | *Ignore or send "Job in progress" alert* |
+| `COMPLETED` | `callback_query: "reset"` | `IDLE` | `SessionCachePurge()` |

@@ -7,9 +7,9 @@
     "test": "test"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "bot-dev": "cd ./bot && npm run dev",
-    "dev": "cd ./api && npm run dev"
+    "api-dev": "cd ./api && npm run dev",
+    "dev": "concurrently \"npm run bot-dev\" \"npm run api-dev\""
   },
   "repository": {
     "type": "git",
@@ -20,5 +20,8 @@
   "bugs": {
     "url": "https://github.com/simplysaad/pdf-to-audio/issues"
   },
-  "homepage": "https://github.com/simplysaad/pdf-to-audio#readme"
+  "homepage": "https://github.com/simplysaad/pdf-to-audio#readme",
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
 }

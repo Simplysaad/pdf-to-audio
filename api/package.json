@@ -5,8 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "node --watch .",
-    "dev2": "nodemon index",
+    "dev": "nodemon index",
     "start": "node index"
   },
   "repository": {
@@ -45,6 +44,7 @@
   },
   "homepage": "https://github.com/simplysaad/pdf-to-audio#readme",
   "devDependencies": {
-    "@types/node-telegram-bot-api": "^0.64.10"
+    "@types/node-telegram-bot-api": "^0.64.10",
+    "nodemon": "^3.1.14"
   }
 }
