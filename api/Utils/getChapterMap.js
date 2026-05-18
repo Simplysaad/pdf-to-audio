@@ -71,7 +71,7 @@ const chapterMap = {
 
 
 export async function getChapterMap(pdfText = "text not provided") {
-  const sampleText = pdfText.substring(0, 20000);
+  const sampleText = pdfText?.substring(0, 20000);
 
   // const prompt = `
   //     Analyze this text from a PDF.

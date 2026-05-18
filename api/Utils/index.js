@@ -12,6 +12,7 @@ import path from "path";
 import AdmZip from "adm-zip";
 // import cloudinary from "../Config/cloudinary.js";
 import PdfParse from "pdf-parse";
+import axios from "axios";
 import { getChapterMap } from "./getChapterMap.js";
 import { callGemini } from "./callGemini.js";
 
@@ -44,18 +45,33 @@ export function cleanText(text) {
  */
 
 export async function extract_text_from_PDF(PDF_FILE) {
-  const buffer = fs.readFileSync(PDF_FILE);
+
+  let buffer;
+  let filename;
+
+  const isUrl = PDF_FILE.startsWith("https://") || PDF_FILE.startsWith("http://")
+
+  if (isUrl) {
+    const response = await axios.get(PDF_FILE, { responseType: "arraybuffer" });
+    buffer = Buffer.from(response.data);
+    // console.log(response.data);
+
+    filename = path.basename(new URL(PDF_FILE).pathname)
+  }
+  else {
+    buffer = fs.readFileSync(PDF_FILE);
+    filename = path.basename(PDF_FILE);
+  }
+
   const output = await PdfParse(buffer);
+  const author = output.info?.Author || output.info?.Creator || "Unknown Author";
+  const rawText = output.text
 
-  // console.log(output)
-
-  const filename = path.basename(PDF_FILE);
-
-  output.text = output.text.toString("utf8");
+  console.log("output", output)
   return {
-    title: filename, //cleanText(output.info.Title?.split(".").slice(0, -1).join(".")),
-    author: output.info["Author" | "Creator"],
-    text: output.text
+    title: filename,
+    author: author,
+    text: rawText
   };
 }
 
@@ -339,7 +355,6 @@ System Role: You are an elite audio scriptwriter.
  */
 
 // import "dotenv/config"
-import fs from "fs";
 // import { generatePodcastScript, generateSummary, getMetaData, splitChapters } from "./Utils/index.js";
 
 // const mainTextArray = await splitChapters("./test_2.pdf")

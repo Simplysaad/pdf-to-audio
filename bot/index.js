@@ -15,17 +15,6 @@ bot.launch()
 console.log('Bot is running!')
 
 
-
-bot.start((ctx) => {
-
-    ctx.reply('Welcome to my bot!', Markup.keyboard(["🎙️ PDF to Podcast", "Generate AudioBook", "📝 Exam Study Guide Generator", "🔍 Deep Research Digest"]))
-}
-);
-
-
-bot.help((ctx) => ctx.reply('Send me a message and I will reply.'));
-
-
 bot.command('status', async (ctx) => {
     const { data: response } = await axiosInstance.get("/api/status")
     console.log(response)
@@ -41,66 +30,31 @@ bot.use((ctx, next) => {
     return next();
 });
 
-// 2. User triggers the flow
-bot.command('convert', async (ctx) => {
-    ctx.session.step = 'AWAITING_PDF';
-    await ctx.reply('Please upload the PDF file you want to convert to audio 📄');
-});
+// 1. User runs /start
+bot.start((ctx) => {
+    ctx.reply("Welcome to SoundChapters, Kindly Upload your PDF file 📄 \n Upload only one and make sure it is only PDF")
+})
 
-// 3. Catch all documents/files
-bot.on('document', async (ctx) => {
-    // If the user isn't in the correct step, ignore or guide them
-    if (ctx.session.step !== 'AWAITING_PDF') {
-        return ctx.reply('Use /convert to start a new audio extraction project.');
+// 2. User uploads file
+
+bot.on("document", async (ctx) => {
+    // console.log(ctx.message?.document)
+
+    let document = ctx.message.document
+    let fileLink = await ctx.telegram.getFileLink(document.file_id)
+
+    const doc = {
+        file_url: fileLink.href,
+        ...document
     }
 
-    // Verify it is a PDF
-    if (ctx.message.document.mime_type !== 'application/pdf') {
-        return ctx.reply('Please upload a valid PDF file.');
-    }
+    const { data: response } = await axiosInstance.post("/api/podcast", {
+        ...doc, chatId: ctx.chat.id
+    })
 
-    // Store the file information in the session for later steps
-    ctx.session.pdfData = {
-        fileId: ctx.message.document.file_id,
-        fileName: ctx.message.document.file_name
-    };
+    await ctx.reply(response.message)
 
-    // Advance the state machine
-    ctx.session.step = 'AWAITING_VOICE_SELECTION';
-
-    // Ask the next question using inline buttons
-    await ctx.reply(`Received: ${ctx.session.pdfData.fileName}.\nNow choose a narration voice:`,
-        Markup.inlineKeyboard([
-            [Markup.button.callback('Male Voice 🧔', 'voice_male')],
-            [Markup.button.callback('Female Voice 👩', 'voice_female')]
-        ])
-    );
-});
-
-// 4. Handle the button selection
-bot.action(/voice_(.+)/, async (ctx) => {
-    if (ctx.session.step !== 'AWAITING_VOICE_SELECTION') {
-        return ctx.answerCbQuery('Session expired. Please restart with /convert');
-    }
-
-    const selectedVoice = ctx.match[1]; // Extracts 'male' or 'female' from regex
-    ctx.session.audioSettings.voice = selectedVoice;
-
-    await ctx.answerCbQuery();
-    await ctx.editMessageText(`Voice updated to: ${selectedVoice === 'male' ? 'Male 🧔' : 'Female 👩'}`);
-
-    // Trigger the actual processing
-    await ctx.reply('Sending your file to our backend conversion engine. Stand by...');
-
-    // Hand off data to your API using Axios
-    // const response = await axios.post('...', { fileId: ctx.session.pdfData.fileId, voice: ctx.session.audioSettings.voice });
-
-    // Reset the user's session when complete
-    console.log(ctx.session)
-    ctx.session.step = 'idle';
-    ctx.session.pdfData = null;
-});
-
-// Enable graceful stop
-// process.once('SIGINT', () => bot.stop('SIGINT'));
-// process.once('SIGTERM', () => bot.stop('SIGTERM'));
+    // console.log(response)
+})
+// 3. User selects what they want to do
+// 4. Based on their choice, the bot runs the conversion process, sending messages intermittently
