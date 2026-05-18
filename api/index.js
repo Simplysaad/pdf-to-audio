@@ -63,3 +63,26 @@ app.post("/api/podcast", async (req, res, next) => {
         next(err)
     }
 })
+
+
+app.post("/api/podcast2", async (req, res, next) => {
+    /**
+     *  Download PDF from telegram.
+     *  Extract text from PDF.
+     *  Generate ChapterMap from the extracted text.
+     *  Split the whole text into chapter chunks based on the chapterMap.
+     *      
+     * 
+     * (PODCAST SCRIPT)
+     *  Generate summary of each chunk, highlighting the main ideas.
+     *  Combine all the summaries into one master summary.
+     *  Generate Podcast Script from the master summary. 
+     * 
+     * (Study Guide)
+     * Execute text extraction 
+     * Multi-choice question (MCQ) generation 
+     * flashcard compilation.
+     * 
+     * (Research Digest)
+     */
+})
