@@ -45,35 +45,68 @@ export function cleanText(text) {
  */
 
 export async function extract_text_from_PDF(PDF_FILE) {
-
   let buffer;
   let filename;
+  const isUrl = PDF_FILE.startsWith("https://") || PDF_FILE.startsWith("http://");
 
-  const isUrl = PDF_FILE.startsWith("https://") || PDF_FILE.startsWith("http://")
+  try {
+    // Phase 1: Read or Download the File
+    if (isUrl) {
+      const maxRetries = 4;
+      let attempts = 0;
 
-  if (isUrl) {
-    const response = await axios.get(PDF_FILE, { responseType: "arraybuffer" });
-    buffer = Buffer.from(response.data);
-    // console.log(response.data);
+      while (attempts < maxRetries) {
 
-    filename = path.basename(new URL(PDF_FILE).pathname)
+        try {
+          const response = await axios.get(PDF_FILE, { responseType: "arraybuffer", timeout: 150000 });
+          buffer = Buffer.from(response.data);
+          filename = path.basename(new URL(PDF_FILE).pathname);
+          break;
+        } catch (downloadErr) {
+          attempts++;
+
+          console.warn(`Download attempt ${attempts} failed: ${downloadErr.message}`);
+
+          if (attempts >= maxRetries) {
+            throw new Error("Unable to download file from cloud after maximum retry attempts");
+          }
+
+          const delayTime = 1000 * attempts;
+          await new Promise(resolve => setTimeout(resolve, delayTime));
+        }
+      }
+
+    } else {
+      try {
+        buffer = fs.readFileSync(PDF_FILE);
+        filename = path.basename(PDF_FILE);
+      } catch (readErr) {
+        throw new Error("Unable to read file from local storage");
+      }
+    }
+
+    // Phase 2: Parse the PDF Buffer
+    try {
+      const output = await PdfParse(buffer);
+      const author = output.info?.Author || output.info?.Creator || "Unknown Author";
+
+      return {
+        title: filename,
+        author: author,
+        text: output.text
+      };
+    } catch (parseErr) {
+      throw new Error("Unable to extract text from PDF");
+    }
+
+  } catch (error) {
+    // Log the actual underlying operational error for debugging
+    console.error("PDF Processing Detailed Error:", error);
+    // Rethrow the clean, user-friendly error message upward to the Express route
+    throw error;
   }
-  else {
-    buffer = fs.readFileSync(PDF_FILE);
-    filename = path.basename(PDF_FILE);
-  }
-
-  const output = await PdfParse(buffer);
-  const author = output.info?.Author || output.info?.Creator || "Unknown Author";
-  const rawText = output.text
-
-  console.log("output", output)
-  return {
-    title: filename,
-    author: author,
-    text: rawText
-  };
 }
+
 
 export async function getMetaData(PDF_FILE) {
   const buffer = fs.readFileSync(PDF_FILE);
@@ -109,10 +142,11 @@ function removeSpaces(text) {
  * @description separates the main text into chapters
  * @returns {String[]} [contents, mainText]
  * @param {String} FILE_OUTPUT
+ * @param {String} text
  */
 
-export async function splitChapters(path) {
-  const { text } = await extract_text_from_PDF(path);
+export async function splitChapters(text) {
+  // const { text } = await extract_text_from_PDF(path);
 
   const lines = removeSpaces(text);
 

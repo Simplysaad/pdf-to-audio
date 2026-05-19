@@ -3,7 +3,7 @@ import { callGemini } from "./callGemini.js";
 
 const { GEMINI_API_KEY } = process.env;
 const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
-const chapterMap = {
+let chapterMap = {
   bookTitle: 'Programming Collective Intelligence',
   chapters: [
     {
@@ -73,19 +73,25 @@ const chapterMap = {
 export async function getChapterMap(pdfText = "text not provided") {
   const sampleText = pdfText?.substring(0, 20000);
 
-  // const prompt = `
-  //     Analyze this text from a PDF.
-  //     Identify the book title and the chapters.
-  //     Return ONLY a JSON object with this exact structure:
-  //     {
-  //       "bookTitle": "string",
-  //       "chapters": [
-  //         { "id": 1, "title": "Chapter Title", "start_phrase": "First 10 words of the chapter" }
-  //       ]
-  //     }
-  //     Text: ${sampleText}
-  // `;
+  try {
+    const prompt = `
+        Analyze this text from a PDF.
+        Identify the book title and the chapters.
+        Return ONLY a JSON object with this exact structure:
+        {
+          "bookTitle": "string",
+          "chapters": [
+            { "id": 1, "title": "Chapter Title", "start_phrase": "First 10 words of the chapter" }
+          ]
+        }
+        Text: ${sampleText}
+    `;
 
-  // let chapterMap = await callGemini({ prompt, returnType: "json" })
-  return chapterMap
+    chapterMap = await callGemini({ prompt, returnType: "json" })
+    return chapterMap
+  } catch (error) {
+    console.error(error)
+    throw error
+  }
+
 }

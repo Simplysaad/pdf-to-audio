@@ -1,6 +1,6 @@
 import express from "express"
 import "dotenv/config";
-import { extract_text_from_PDF } from "./Utils/index.js";
+import { extract_text_from_PDF, generateSummary, splitChapters } from "./Utils/index.js";
 import { getChapterMap } from "./Utils/getChapterMap.js";
 import { Telegraf } from "Telegraf"
 const app = express();
@@ -67,10 +67,10 @@ app.post("/api/podcast", async (req, res, next) => {
 
 app.post("/api/podcast2", async (req, res, next) => {
     /**
-     *  Download PDF from telegram.
-     *  Extract text from PDF.
-     *  Generate ChapterMap from the extracted text.
-     *  Split the whole text into chapter chunks based on the chapterMap.
+     * 
+     *  Extract text from PDF.✅
+     *  Generate ChapterMap from the extracted text.✅
+     *  Split the whole text into chapter chunks based on the chapterMap.✅
      *      
      * 
      * (PODCAST SCRIPT)
@@ -85,4 +85,52 @@ app.post("/api/podcast2", async (req, res, next) => {
      * 
      * (Research Digest)
      */
+
+    try {
+        const { file_url, chatId } = req.body
+        let text = ""
+        //1. Extract text from PDF.
+
+        await tgPush.sendMessage(chatId, "⏳ Step 1/3: Extracting text from PDF...");
+        const result = await extract_text_from_PDF(file_url)
+
+        if (result) await tgPush.sendMessage(chatId, "✅ Extraction complete! \n⏳ Step 2/3: Analyzing chapters and generating chapter map...");
+        text = result.text
+
+
+        // // 2. Generate ChapterMap from the extracted text.
+        const chapterMap = await getChapterMap(text);
+        let chapters = chapterMap.chapters.map((chapter, idx) => {
+            return `${idx + 1}. ${chapter.title}`
+        })
+        console.log("chapterMap", chapterMap)
+
+        // await tgPush.sendMessage(chatId, "✅ Extraction complete! \n⏳ Step 2/3: Analyzing chapters and splitting text...");
+        await tgPush.sendMessage(chatId, `✅ Generated Chapters successfully, about to split into the following chapters: \n ${chapters.join("\n")}`);
+
+
+        // // 3. Split the whole text into chapter chunks based on the chapterMap.
+
+        const mainTextArray = await splitChapters(text);
+
+
+        await tgPush.sendMessage(chatId, `✅ Successfully split text into: ${mainTextArray.length} chapters`);
+        console.log("✅ Successfully split into:", mainTextArray.length, "chapters");
+
+        console.log("mainTextArray", mainTextArray)
+
+        return res.status(200).json({
+            success: true,
+            message: ``,
+            // data: {},
+            data: mainTextArray
+        })
+
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: error.message,
+            //    data: {}
+        })
+    }
 })

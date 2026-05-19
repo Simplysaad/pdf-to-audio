@@ -38,7 +38,8 @@ bot.start((ctx) => {
 // 2. User uploads file
 
 bot.on("document", async (ctx) => {
-    // console.log(ctx.message?.document)
+    console.time("bot-response");
+    console.log(ctx.message?.document)
 
     let document = ctx.message.document
     let fileLink = await ctx.telegram.getFileLink(document.file_id)
@@ -48,13 +49,20 @@ bot.on("document", async (ctx) => {
         ...document
     }
 
-    const { data: response } = await axiosInstance.post("/api/podcast", {
+    const { data: response } = await axiosInstance.post("/api/podcast2", {
         ...doc, chatId: ctx.chat.id
     })
 
-    await ctx.reply(response.message)
+    await ctx.reply("Document uploaded successfully, processing...")
+    await ctx.reply(response.data)
 
     // console.log(response)
+    console.log({ ...doc, chatId: ctx.chat.id })
+    console.timeEnd("bot-response")
 })
+
+// console.timeLog("bot-response")
+
+
 // 3. User selects what they want to do
 // 4. Based on their choice, the bot runs the conversion process, sending messages intermittently
