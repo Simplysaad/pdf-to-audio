@@ -336,17 +336,32 @@ export async function generateSummary(chapter, bookTitle) {
   // console.log("chunk", chunk)
 
   const prompt = `
-   System Role: You are a technical data extractor. Analyze this text from '${bookTitle}', Chapter: '${chapterTitle}'.
+   # Role
+You are an expert editor and information architect specializing in high-density text summarization.
 
-    Task: Extract the core architecture into a raw JSON object with these exact keys:
-    - "thesis": A 1-sentence core purpose.
-    - "mechanisms": An array of 3-5 technical bullet points.
-    - "insight": The absolute most critical concept a student must remember.
+# Task
+Generate a concise, high-comprehension summary of the provided text. Extract the core arguments, critical data, and essential insights while maintaining absolute brevity.
 
-    Constraint: Return ONLY valid JSON. No markdown wrappers, no backticks, no markdown formatting.
+# Guidelines
+1. **Analyze Strategy**: Identify the primary thesis, supporting arguments, and definitive conclusions.
+2. **Prioritize Value**: Focus strictly on the "need-to-know" information; ruthlessly eliminate filler, repetition, and background context.
+3. **Optimize Word Count**: Keep the output as brief as possible without sacrificing the text's original meaning or logical flow.
+4. **Maintain Clarity**: Ensure a non-expert reader can fully grasp the core concepts immediately upon reading.
+5. **Preserve Accuracy**: Do not extrapolate, assume, or introduce outside information.
 
-    Text: ${main}
-      `;
+# Output Format
+* **One-Sentence Summary**: A single, punchy overview of the main takeaway (under 25 words).
+* **Key Insights**: A bulleted list of the absolute most critical points, using bold text for visual anchors.
+* **Actionable Conclusion**: A brief, final statement on the overall impact or outcome of the text.
+
+# Constraints
+* Use short, direct sentences.
+* Avoid passive voice.
+* No introductory or concluding conversational filler (e.g., do not say "Here is your summary").
+
+# Source Text
+ ${main}
+`;
 
   // console.log("prompt", prompt)
   // Using 1.5-flash for speed and low cost
@@ -356,20 +371,30 @@ export async function generateSummary(chapter, bookTitle) {
 
 export async function generatePodcastScript(summariesText) {
   const prompt = `
-System Role: You are an elite audio scriptwriter.
-    Convert the following array of sequential chapter summaries from the book '${bookTitle
-    }' into a fluid podcast script.
+# Role
+You are a versatile, world-class podcast producer capable of translating complex topics—ranging across STEM, behavioral sciences, history, and the arts—into gripping audio narratives.
 
-    Guidelines:
-    1. Identify 2 domain authorities to act as constant hosts throughout the entire show.
-    2. Maintain a continuous narrative arc. Host A uses the Feynman Technique (simple physical analogies) and Host B maps it back to technical reality.
-    3. Sequence through the chapter data array naturally without explicitly listing chapter numbers.
-    4. Output the script as an array of JSON speaker blocks utilizing "voice" (SPEAKER_1/SPEAKER_2),
-"speaker_name", and "text" keys. Include SSML pause tags (<break time="500ms"/>) inside the text strings.
+# Task
+Analyze the provided summary, determine its domain, and write a captivating 5-minute podcast script.
 
-    Source Material JSON Data:
-    ${JSON.stringify(detailedSummaries, null, 2)}
-    `;
+# Domain-Specific Adaptability
+Before writing, identify the core field of the text and apply the corresponding storytelling framework:
+*   **Science/Engineering**: Focus on the "Mind-Blowing Breakthrough." Use vivid analogies to explain complex data. Emphasize the "How it works" and the future impact.
+*   **Psychology/Behavioral Science**: Focus on the "Human Element." Use relatable everyday scenarios. Emphasize why the reader should care about their own mind or society.
+*   **Arts/Humanities**: Focus on "Emotion and Culture." Use descriptive, sensory language. Emphasize the creative struggle, historical context, and philosophical meaning.
+
+# Research & Expansion Rule
+You must search for and integrate outside context (real-world examples, historical parallels, counter-intuitive facts, or thought experiments) to maximize entertainment value. The core plot and takeaways must remain 100% consistent with the provided summary.
+
+# Format & Structure
+*   **Hosts**: **Alex** (the relatable, curious proxy for the audience) and **Sam** (the domain expert who breaks down concepts simply).
+*   **The Hook**: Start with a provocative question, a shocking statistic, or a vivid "imagine this" scenario. Never start with generic introductions.
+*   **Word Count**: 650–750 words (5 minutes of spoken dialogue). Include audio/SFX cues in brackets [like this].
+*   **Tone**: Conversational, fast-paced, and intellectually engaging. Use natural banter, contractions, and verbal pauses (e.g., "Wait...", "Huh, interesting.").
+
+# Source Summary
+    ${detailedSummaries}
+`;
 
   return await callGemini({ prompt, model: "gemini-2.5-flash" });
 }

@@ -39,6 +39,7 @@ bot.start((ctx) => {
 
 bot.on("document", async (ctx) => {
     console.time("bot-response");
+
     console.log(ctx.message?.document)
 
     let document = ctx.message.document
@@ -49,12 +50,18 @@ bot.on("document", async (ctx) => {
         ...document
     }
 
+    await ctx.reply("Document uploaded successfully, processing...")
+
+
     const { data: response } = await axiosInstance.post("/api/podcast2", {
         ...doc, chatId: ctx.chat.id
     })
 
-    await ctx.reply("Document uploaded successfully, processing...")
-    await ctx.reply(response.data)
+    // await ctx.reply(response.data)
+    const summaries = response.data.map(async (summary) => {
+        await ctx.reply(summary)
+        return summary
+    })
 
     // console.log(response)
     console.log({ ...doc, chatId: ctx.chat.id })

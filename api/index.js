@@ -96,6 +96,7 @@ app.post("/api/podcast2", async (req, res, next) => {
 
         if (result) await tgPush.sendMessage(chatId, "✅ Extraction complete! \n⏳ Step 2/3: Analyzing chapters and generating chapter map...");
         text = result.text
+        let bookTitle = result.title
 
 
         // // 2. Generate ChapterMap from the extracted text.
@@ -119,11 +120,42 @@ app.post("/api/podcast2", async (req, res, next) => {
 
         console.log("mainTextArray", mainTextArray)
 
+        // TODO: start generating summaries then podcast scripts
+
+
+        const summaries = []
+        for (const [index, chunk] of mainTextArray.entries()) {
+            tgPush.sendMessage(chatId, `Processing Chapter ${index + 1}/${chunk.length}: ${chunk.title}...`);
+            console.log(`Processing Chapter ${index + 1}/${mainTextArray.length}: ${chunk.title}...`);
+
+            const summary = await generateSummary(chunk, bookTitle);
+
+            if (summary) {
+                let formattedSummary = `
+                 Title: ${chunk.title}
+                 ${summary}
+                `;
+
+
+                summaries.push(formattedSummary);
+                console.log(`✅ Chapter ${index + 1} complete.`);
+                tgPush.sendMessage(chatId, `✅ Chapter ${index + 1} complete.`);
+            } else {
+                tgPush.sendMessage(chatId, `❌ Chapter ${index + 1} failed.`);
+                console.error(`❌ Chapter ${index + 1} failed.`);
+                summaries.push(`[Summary missing for chapter: ${chunk.title}]`);
+            }
+
+            // 💡 THE CRITICAL PART: The "Cooldown"
+            // On the Free Tier, wait 2-3 seconds between calls to keep the API happy.
+            await new Promise(resolve => setTimeout(resolve, 3000));
+        }
+
         return res.status(200).json({
             success: true,
             message: ``,
             // data: {},
-            data: mainTextArray
+            data: summaries
         })
 
     } catch (error) {
